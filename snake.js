@@ -1,3 +1,5 @@
+/* global Phaser */
+
 // #region general utils
 const getRange = length => [...Array(length).keys()]
 const getWithoutLastElement = array => array.slice(0, array.length - 1)
