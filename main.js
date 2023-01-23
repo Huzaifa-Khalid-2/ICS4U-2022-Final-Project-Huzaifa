@@ -2,24 +2,23 @@
 const getRange = length => [...Array(length).keys()]
 const getWithoutLastElement = array => array.slice(0, array.length - 1)
 const areEqual = (one, another) => Math.abs(one - another) < 0.00000000001
-const getRandomFrom = array =>
-  array[Math.floor(Math.random() * array.length)]
+const getRandomFrom = array => array[Math.floor(Math.random() * array.length)]
 const getLastElement = array => array[array.length - 1]
 // #endregion
 
-// geometry
+// #region geometry
 class Vector {
   constructor(x, y) {
     this.x = x
     this.y = y
   }
 
-  subtract({x, y}) {
+  subtract({ x, y }) {
     return new Vector(this.x - x, this.y - y)
   }
 
-  add({x, y}) {
-    return new Vector(this.x + x, this.y - y)
+  add({ x, y }) {
+    return new Vector(this.x + x, this.y + y)
   }
 
   scaleBy(number) {
@@ -30,7 +29,7 @@ class Vector {
     return Math.hypot(this.x, this.y)
   }
 
-  normalize () {
+  normalize() {
     return this.scaleBy(1 / this.length())
   }
 
@@ -64,7 +63,7 @@ class Segment {
     return areEqual(this.length(), first.length() + second.length())
   }
 
-  getProjectedPoint({ x,  y }) {
+  getProjectedPoint({ x, y }) {
     const { start, end } = this
     const { x: px, y: py } = end.subtract(start)
     const u = ((x - start.x) * px + (y - start.y) * py) / (px * px + py * py)
@@ -76,7 +75,7 @@ const getSegmentsFromVectors = vectors => getWithoutLastElement(vectors)
   .map((one, index) => new Segment(one, vectors[index + 1]))
 // #endregion
 
-// #reion constants
+// #region constants
 const UPDATE_EVERY = 1000 / 60
 
 const DIRECTION = {
@@ -100,16 +99,18 @@ const MOVEMENT_KEYS = {
   DOWN: [83, 40],
   LEFT: [65, 37]
 }
+
 const STOP_KEY = 32
 // #endregion
 
 // #region game core
 const getFood = (width, height, snake) => {
-  const allPositions = getRange(width).map(x =>
-    getRange(height).map(y => new Vector(x + 0.5, y + 0.5))).flat()
+  const allPositions = getRange(width).map(x => 
+    getRange(height).map(y => new Vector(x + 0.5, y + 0.5))
+  ).flat()
   const segments = getSegmentsFromVectors(snake)
   const freePositions = allPositions
-  .filter(point => segments.every(segment => !segment.isPointInside(point)))
+    .filter(point => segments.every(segment => !segment.isPointInside(point)))
   return getRandomFrom(freePositions)
 }
 
@@ -141,6 +142,7 @@ const getGameInitialState = (config = {}) => {
     score: 0
   }
 }
+
 const getNewTail = (oldSnake, distance) => {
   const { tail } = getWithoutLastElement(oldSnake).reduce((acc, point, index) => {
     if (acc.tail.length !== 0) {
@@ -190,7 +192,7 @@ const getStateAfterMoveProcessing = (state, movement, distance) => {
     const getStateWithBrokenSnake = (old, oldRounded, newRounded, getBreakpoint) => {
       const breakpointComponent = oldRounded + (newRounded > oldRounded ? 0.5 : -0.5)
       const breakpoint = getBreakpoint(breakpointComponent)
-      const vector = newDirection.scaleBy(distance - Math.abs(old - breakComponent))
+      const vector = newDirection.scaleBy(distance - Math.abs(old - breakpointComponent))
       const head = breakpoint.add(vector)
       return {
         ...state,
@@ -198,27 +200,35 @@ const getStateAfterMoveProcessing = (state, movement, distance) => {
         snake: [...newTail, breakpoint, head]
       }
     }
+    if (oldXRounded !== newXRounded) {
+      return getStateWithBrokenSnake(
+        oldX,
+        oldXRounded,
+        newXRounded,
+        x => new Vector(x, oldY)
+      )
+    }
     if (oldYRounded !== newYRounded) {
       return getStateWithBrokenSnake(
         oldY,
         oldYRounded,
         newYRounded,
-        y => new Vector(oldX, Y)
-        )
+        y => new Vector(oldX, y)
+      )
     }
   }
-return {
-  ...state,
-  snake: [...newTail, newHead]
+  return {
+    ...state,
+    snake: [...newTail, newHead]
   }
 }
 
 const getStateAfterFoodProcessing = (state) => {
-  const headSegment = newSegment(
+  const headSegment = new Segment(
     getLastElement(getWithoutLastElement(state.snake)),
     getLastElement(state.snake)
   )
-  if (!headSegement.isPointInside(state.food)) return state
+  if (!headSegment.isPointInside(state.food)) return state
 
   const [tailEnd, beforeTailEnd, ...restOfSnake] = state.snake
   const tailSegment = new Segment(beforeTailEnd, tailEnd)
@@ -242,11 +252,11 @@ const isGameOver = ({ snake, width, height }) => {
 
   const [head, ...tail] = snake.slice().reverse()
   return getSegmentsFromVectors(tail).slice(2).find(segment => {
-    const projected = segement.getProjectedPoint(head)
+    const projected = segment.getProjectedPoint(head)
     if (!segment.isPointInside(projected)) {
       return false
     }
-    const distance = new Segment(heads, projected).length()
+    const distance = new Segment(head, projected).length()
     return distance < 0.5
   })
 }
@@ -260,9 +270,9 @@ const getNewGameState = (state, movement, timespan) => {
   }
   return stateAfterFood
 }
-// #endregion rendering
+// #endregion
 
-// region rendering
+// #region rendering
 const getContainer = () => document.getElementById('container')
 
 const getContainerSize = () => {
@@ -278,7 +288,7 @@ const clearContainer = () => {
   }
 }
 
-const getProjectors = (containerSize, game) =>{
+const getProjectors = (containerSize, game) => {
   const widthRatio = containerSize.width / game.width
   const heightRatio = containerSize.height / game.height
   const unitOnScreen = Math.min(widthRatio, heightRatio)
@@ -352,10 +362,9 @@ const render = ({
   renderSnake(context, cellSide, snake.map(projectPosition))
   renderScores(score, bestScore)
 }
-// #endregion 
+// #endregion
 
 // #region main
-
 const getInitialState = () => {
   const game = getGameInitialState()
   const containerSize = getContainerSize()
@@ -399,10 +408,10 @@ const getNewStatePropsOnTick = (oldState) => {
 const startGame = () => {
   let state = getInitialState()
   const updateState = props => {
-  state = { ...state, ...props }
-}
+    state = { ...state, ...props }
+  }
 
-window.addEventListener('resize', () => {
+  window.addEventListener('resize', () => {
     clearContainer()
     const containerSize = getContainerSize()
     updateState({ ...containerSize, ...getProjectors(containerSize, state.game) })
